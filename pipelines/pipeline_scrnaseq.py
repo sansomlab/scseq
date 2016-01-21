@@ -763,6 +763,103 @@ def loadAlignmentSummaryMetrics(infiles, outfile):
                          options='-i "cell"')
 
 
+# ------------------- Picard: InsertSizeMetrics ----------------------- #
+
+@follows(mkdir("qc.dir/insert.size.metrics.dir/"))
+@transform(collectBAMs,
+           regex(r".*/(.*).bam"),
+           [(r"qc.dir/insert.size.metrics.dir"
+             r"/\1.insert.size.metrics.summary"),
+            (r"qc.dir/insert.size.metrics.dir"
+             r"/\1.insert.size.metrics.histogram")])
+def insertSizeMetricsAndHistograms(infile, outfiles):
+    '''Run Picard InsertSizeMetrics on the BAM files to
+       collect summary metrics and histograms'''
+
+    if PAIRED:
+        picard_summary, picard_histogram = outfiles
+        picard_out = P.getTempFilename()
+        picard_histogram_pdf = picard_histogram + ".pdf"
+        picard_options = PARAMS["picard_insertsizemetric_options"]
+
+        job_threads = PARAMS["picard_threads"]
+        job_options = "-l mem_free=" + PARAMS["picard_memory"]
+
+        validation_stringency = PARAMS["picard_validation_stringency"]
+        reference_sequence = os.path.join(PARAMS["annotations_genome_dir"],
+                                          PARAMS["genome"] + ".fasta")
+
+        statement = '''CollectInsertSizeMetrics
+                       I=%(infile)s
+                       O=%(picard_out)s
+                       HISTOGRAM_FILE=%(picard_histogram_pdf)s
+                       VALIDATION_STRINGENCY=%(validation_stringency)s
+                       REFERENCE_SEQUENCE=%(reference_sequence)s
+                       %(picard_options)s;
+                       checkpoint;
+                       grep "MEDIAN_INSERT_SIZE" -A 1 %(picard_out)s
+                       > %(picard_summary)s;
+                       checkpoint;
+                       sed -e '1,/## HISTOGRAM/d' %(picard_out)s
+                       > %(picard_histogram)s;
+                       checkpoint;
+                       rm %(picard_out)s;
+                    ''' % locals()
+
+    else:
+        picard_summary, picard_histogram = outfiles
+
+        statement = '''echo "Not compatible with SE data"
+                       > %(picard_summary)s;
+                       checkpoint;
+                       echo "Not compatible with SE data"
+                       > %(picard_histogram)s
+                    ''' % locals()
+    P.run()
+
+
+@merge(insertSizeMetricsAndHistograms,
+       "qc.dir/qc_insert_size_metrics.load")
+def loadInsertSizeMetrics(infiles, outfile):
+    '''load the insert size metrics to a single table'''
+
+    if PAIRED:
+        picard_summaries = [x[0] for x in infiles]
+
+        P.concatenateAndLoad(picard_summaries, outfile,
+                             regex_filename=(".*/.*/(.*)"
+                                             ".insert.size.metrics.summary"),
+                             cat="cell",
+                             options='')
+
+    else:
+        statement = '''echo "Not compatible with SE data"
+                       > %(outfile)s
+                    ''' % locals()
+        P.run()
+
+
+@merge(insertSizeMetricsAndHistograms,
+       "qc.dir/qc_insert_size_histogram.load")
+def loadInsertSizeHistograms(infiles, outfile):
+    '''load the histograms to a single table'''
+
+    if PAIRED:
+        picard_histograms = [x[1] for x in infiles]
+
+        P.concatenateAndLoad(picard_histograms, outfile,
+                             regex_filename=(".*/.*/(.*)"
+                                             ".insert.size.metrics.histogram"),
+                             cat="cell",
+                             options='-i "insert_size" -e')
+
+    else:
+        statement = '''echo "Not compatible with SE data"
+                       > %(outfile)s
+                    ''' % locals()
+        P.run()
+
+
 # -------------- No. reads mapping to spike-ins vs genome ------------------- #
 
 @follows(mkdir("qc.dir/spike.vs.genome.dir"))
@@ -832,6 +929,8 @@ def loadNumberGenesDetected(infile, outfile):
 
     P.load(infile, outfile,
            options='-i "cell" -H "cell,no_genes_cufflinks"')
+
+
 # ------------------ No. genes detected htseq-count ---------------------- #
 
 
@@ -948,7 +1047,8 @@ def loadSampleInformation(infile, outfile):
         loadFractionReadsSpliced,
         loadNumberGenesDetected,
         loadNumberGenesDetectedHTSeq,
-        loadAlignmentSummaryMetrics],
+        loadAlignmentSummaryMetrics,
+        loadInsertSizeMetrics],
        "qc.dir/qc_summary.txt")
 def qcSummary(infiles, outfile):
     '''create a summary table of relevant QC metrics'''
@@ -956,15 +1056,19 @@ def qcSummary(infiles, outfile):
     # Some QC metrics are specific to paired end data
     if PAIRED:
         exclude = []
-        optional_columns = '''READ_PAIRS_EXAMINED as no_pairs,
+        paired_columns = '''READ_PAIRS_EXAMINED as no_pairs,
                               PERCENT_DUPLICATION as percent_duplication,
                               ESTIMATED_LIBRARY_SIZE as library_size,
+                              PCT_READS_ALIGNED_IN_PAIRS
+                                       as pct_reads_aligned_in_pairs,
+                              MEDIAN_INSERT_SIZE
+                                       as median_insert_size,
                            '''
         pcat = "PAIR"
 
     else:
-        exclude = ["qc_library_complexity"]
-        optional_columns = ''
+        exclude = ["qc_library_complexity", "qc_insert_size_metrics"]
+        paired_columns = ''
         pcat = "UNPAIRED"
 
     tables = [P.toTable(x) for x in infiles
@@ -985,7 +1089,7 @@ def qcSummary(infiles, outfile):
                                        as three_prime_bias,
                                     nreads_uniq_map_genome,
                                     nreads_uniq_map_spike,
-                                    %(optional_columns)s
+                                    %(paired_columns)s
                                     PCT_MRNA_BASES
                                        as percent_mrna,
                                     PCT_CODING_BASES
@@ -1026,7 +1130,7 @@ def loadQCSummary(infile, outfile):
     P.load(infile, outfile)
 
 
-@follows(loadQCSummary)
+@follows(loadQCSummary, loadInsertSizeHistograms)
 def qc():
     '''target for executing qc'''
     pass

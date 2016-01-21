@@ -1101,7 +1101,9 @@ def qcSummary(infiles, outfile):
                                     PCT_ADAPTER
                                        as pct_adapter,
                                     PCT_PF_READS_ALIGNED
-                                       as pct_pf_reads_aligned
+                                       as pct_pf_reads_aligned,
+                                    PF_HQ_ALIGNED_READS/PF_READS*100
+                                       as pct_pf_reads_hq_aligned
                    from %(t1)s
                 ''' % locals()
 

@@ -1,3 +1,12 @@
+#
+#
+#
+# ***********************************************************************
+# *** not used by scseq. Needed for compatibility with CGATPipelines. ***
+# ***********************************************************************
+#
+#
+#
 # -*- coding: utf-8 -*-
 #
 # test documentation build configuration file, created by

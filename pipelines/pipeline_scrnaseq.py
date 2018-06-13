@@ -332,7 +332,7 @@ if PAIRED:
 else:
     SALMON_LIBTYPE = SALMON_STRAND
 
-SPIKES = PARAMS["spikein_present"]
+SPIKES = (PARAMS["spikein_present"] == "True")
 
 
 # ########################################################################### #

@@ -6,13 +6,14 @@ import sqlite3
 import pandas as pd
 import numpy as np
 
-import CGAT.Experiment as E
-import CGATPipelines.Pipeline as P
+from CGATCore import Experiment as E
+from CGATCore import Pipeline as P
 
-PARAMS = P.getParameters(
-    ["%s/pipeline.ini" % os.path.splitext(__file__)[0],
-     "../pipeline.ini",
-     "pipeline.ini"])
+# load options from the config file
+PARAMS = P.get_parameters(
+    ["%s/pipeline.yml" % os.path.splitext(__file__)[0],
+     "../pipeline.yml",
+     "pipeline.yml"])
 
 
 # ########################################################################### #
@@ -25,6 +26,9 @@ def runCuffNorm(geneset, cxb_files, labels,
                 normalisation="classic-fpkm",
                 standards_file=None,
                 hits="total"):
+    '''
+    Run cuffnorm.
+    '''
 
     total_mem = PARAMS["cufflinks_cuffnorm_total_mb_memory"]
 
@@ -54,4 +58,4 @@ def runCuffNorm(geneset, cxb_files, labels,
                      checkpoint;
                      rm $gtf;
                 '''
-    P.run()
+    P.run(statement)

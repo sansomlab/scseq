@@ -17,7 +17,7 @@ This script is best run within nosetests::
    nosetests tests/test_style.py
 
 '''
-import pep8
+import pycodestyle
 import glob
 import os
 from nose.tools import ok_
@@ -28,7 +28,7 @@ EXPRESSIONS = (
     ('pipelines', 'pipelines/*.py'))
 
 
-# Codes to ignore in the pep8 BaseReport
+# Codes to ignore in the pycodestyle BaseReport
 IGNORE = set(('E101',  # indentation contains mixed spaces and tabs
               'E201',  # whitespace after '('
               'E202',  # whitespace before ')'
@@ -54,7 +54,7 @@ def check_style(filename):
     '''check style of filename.
     '''
 
-    p = pep8.StyleGuide(quiet=True)
+    p = pycodestyle.StyleGuide(quiet=False)
     report = p.check_files([filename])
 
     # count errors/warning excluding
@@ -65,7 +65,7 @@ def check_style(filename):
              in report.counters.items() if x not in IGNORE]
     total = sum(take)
     ok_(total == 0,
-        'pep8 style violations: %s' % ','.join(found))
+        'pep8 style violations: {}'.format(','.join(found)))
 
 
 def test_style():

@@ -60,9 +60,6 @@ Input files
 Requirements
 ------------
 
-The pipeline requires the results from
-:doc:`pipeline_annotations`. Set the configuration variable
-:py:data:`annotations_database` and :py:data:`annotations_dir`.
 
 On top of the default CGAT setup, the pipeline requires the following
 software to be in the path:
@@ -93,51 +90,27 @@ import sys
 import os
 import glob
 import sqlite3
-import CGAT.Experiment as E
-import CGATPipelines.Pipeline as P
-import CGATPipelines.PipelineTracks as PipelineTracks
+
+from CGATCore import Experiment as E
+from CGATCore import Pipeline as P
+from CGATCore import Database as DB
+
 import pysam
 
+# -------------------------- < parse parameters > --------------------------- #
+
 # load options from the config file
-PARAMS = P.getParameters(
-    ["%s/pipeline.ini" % os.path.splitext(__file__)[0],
-     "../pipeline.ini",
-     "pipeline.ini"])
-
-# add configuration values from associated pipelines
-#
-# 1. pipeline_annotations: any parameters will be added with the
-#    prefix "annotations_". The interface will be updated with
-#    "annotations_dir" to point to the absolute path names.
-PARAMS.update(P.peekParameters(
-    PARAMS["annotations_dir"],
-    "pipeline_annotations.py",
-    on_error_raise=__name__ == "__main__",
-    prefix="annotations_",
-    update_interface=True))
-
-# define some tracks if needed
-
-TRACKS = PipelineTracks.Tracks(PipelineTracks.Sample).loadFromDirectory(
-    glob.glob("*.ini"), "(\S+).ini")
+PARAMS = P.get_parameters(
+    ["%s/pipeline.yml" % os.path.splitext(__file__)[0],
+     "../pipeline.yml",
+     "pipeline.yml"])
 
 
-# --------------------------< utility functions >---------------------------- #
+# ----------------------- < pipeline configuration > ------------------------ #
 
-def connect():
-    '''Connect to database.
-       Use this method to connect to additional databases.
-       Returns an sqlite3 database handle.
-    '''
-
-    dbh = sqlite3.connect(PARAMS["database"])
-    statement = '''ATTACH DATABASE '%s' as annotations''' % (
-        PARAMS["annotations_database"])
-    cc = dbh.cursor()
-    cc.execute(statement)
-    cc.close()
-
-    return dbh
+if len(sys.argv) > 1:
+    if(sys.argv[1] == "config") and __name__ == "__main__":
+        sys.exit(P.main(sys.argv))
 
 
 # ------------------------< specific pipeline tasks >------------------------ #
@@ -153,14 +126,16 @@ def validateCramFiles(infile, outfiles):
 
     outfile, outfile_quality = outfiles
 
-    temp_quality = P.getTempFilename()
-    statement = '''cramtools qstat -I %(infile)s > %(temp_quality)s;
+    statement = '''temp_quality=`mktemp -p %(cluster_tmpdir)s`;
+                   cramtools qstat -I %(infile)s > $temp_quality;
                    echo $? > %(outfile)s;
-                   cat %(temp_quality)s
+                   cat $temp_quality
                    | awk '{OFS="\\t"} {print $1,$2}'
                    > %(outfile_quality)s;
+                   rm $temp_quality;
                 '''
-    P.run()
+
+    P.run(statement)
 
 
 @follows(validateCramFiles)
@@ -205,11 +180,11 @@ def loadCramQuality(infiles, outfile):
                      for fn in filenames
                      if fn.endswith(".quality")]
 
-    P.concatenateAndLoad(quality_files, outfile,
-                         regex_filename="validate.cram.dir/(.*).quality",
-                         cat="track",
-                         has_titles=False,
-                         header="cramID,number_reads,cram_quality_score")
+    P.concatenate_and_load(quality_files, outfile,
+                           regex_filename="validate.cram.dir/(.*).quality",
+                           cat="track",
+                           has_titles=False,
+                           header="cramID,number_reads,cram_quality_score")
 
 
 @follows(inspectValidations,
@@ -222,7 +197,8 @@ def extractSampleInformation(infiles, outfile):
     # build a dictionary of cell to cram file mappings
     cells = {}
     for cram_file in infiles:
-        cram = pysam.AlignmentFile(cram_file, "rb")
+        cram = pysam.AlignmentFile(cram_file, "rc")
+        print(cram.header)
         cell = cram.header["RG"][0]["SM"]
         if cell not in cells.keys():
             cells[cell] = [cram_file]
@@ -324,7 +300,7 @@ def cram2fastq(infile, outfiles):
             log.write("Extracting fastqs from %(cram)s:" % locals() + "\n")
             log.write(statement % locals() + "\n")
 
-            P.run()
+            P.run(statement)
 
             log.write("done.\n\n")
 
@@ -368,7 +344,7 @@ def cram2fastq(infile, outfiles):
                        > %(trimmed_fastq_name)s
                        '''
         log.write(statement % _merge_dicts(PARAMS, locals()) + "\n")
-        P.run()
+        P.run(statement)
         log.write("done. \n\n")
 
     # ##################
@@ -393,7 +369,7 @@ def cram2fastq(infile, outfiles):
                        -o "%(reconciled_fastq_prefix)s.%%s.gz";
                     '''
         log.write(statement % _merge_dicts(PARAMS, locals()) + "\n")
-        P.run()
+        P.run(statement)
         log.write("done\n\n")
 
     else:
@@ -424,7 +400,7 @@ def cram2fastq(infile, outfiles):
                        > %(temp_dir)s/%(cell_name)s.md5;
                     '''
         log.write(statement % locals() + "\n")
-        P.run()
+        P.run(statement)
         log.write("done\n\n")
 
         # unlink (delete) the temporary files

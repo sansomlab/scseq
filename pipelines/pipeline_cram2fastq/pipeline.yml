@@ -1,0 +1,34 @@
+# Pipeline pipeline_cram2fastq.py configuration file
+# ==================================================
+#
+
+
+# General options
+# ---------------
+
+# name of database
+database:
+     file: csvdb
+
+
+# keep temporary files (please only do this if needed for
+# debugging).
+keep_temporary: 0
+
+
+# Pre-processing options
+# ----------------------
+preprocess:
+    #memory for cramtools task
+    memory: 10000M
+
+    quality_threshold: 20
+    min_length: 50
+
+    #trimming fastqs
+    trim: 1
+
+    # reconcile read pairs after trimming
+    # essential unless one wishes to analyse
+    # the ends separately (set to "False").
+    reconcile: True

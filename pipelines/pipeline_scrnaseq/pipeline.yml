@@ -1,0 +1,279 @@
+# Pipeline pipeline_scrnaseq.py configuration file
+# ================================================
+#
+
+
+# General options
+# ---------------
+
+# Project name.
+projectname: SingleCellRNASeq001
+
+# Copyright statement.
+copyright: Sansom Group, Kennedy Institute of Rheumatology (2014-2018)
+
+# Sample title specification.
+#
+# * Title name fields must be separated with underscores (i.e. "_")
+#   (this is necessary to ensure SQL/R compatibility).
+#
+# * e.g. "thymocyte_knockout_p2_A_6.fastq|bam"
+#
+name_field_titles: source,condition,plate,row,column
+
+
+# Specify the input file type as either "fastq" or "bam".
+#
+# * fastq
+#      single end fastqs are expected to end with ".fastq.gz"
+#      paired end fastqs are expected to end with ".fastq.1|2.gz"
+#
+# * bam
+#      bam files indexes must also be supplied
+#      bam files must be sorted by position
+#
+# Note that mixed input files types are not supported
+#
+input_type: fastq
+
+# Location of input files, relative to the working directory
+input_dir: data.dir
+
+# Indicate whether sequencing data is paired-end (True|False)
+paired: True
+
+# Strandedness - must be either "none", "forward" or "reverse".
+#
+# "none":  data is treated as unstranded.
+#          e.g. Illumina Truseq, Most single-cell protocols
+#          equivalents: hisat: default, i.e. --rna-strandedness not set
+#                   cufflinks: fr-secondstrand
+#                      HT-seq: no
+#                      PICARD: NONE
+#                      SALMON: (I)U
+#
+# "forward": The first read (if paired) or read (if single end)
+#          corresponds to the transcript strand
+#          e.g. Directional Illumina, Standard Solid
+#	   equivalents: hisat: SE: F, PE: FR
+#                   cufflinks: fr-secondstrand
+#                      HT-seq: yes
+#                      PICARD: FIRST_READ_TRANSCRIPTION_STRAND
+#                      SALMON: (I)SF
+#
+# "reverse": The first read (if paired) or read (if single end)
+#          corresponds to the reverse complement of the
+#          the transcript strand
+#          e.g. dUTP, NSR, NNSR
+#	   equivalents: hisat: SE: R, PE: RF
+#                   cufflinks: fr-firststrand
+#                      HT-seq: reverse
+#                      PICARD: SECOND_READ_TRANSCRIPTION_STRAND
+#                      SALMON: (I)SR
+#
+strandedness: none
+
+
+# location of the local sqlite3 database
+database:
+    file: csvdb
+
+
+# Spike-in options
+# ----------------
+spikein:
+    # Whether spike-ins are present in the samples (True|False)
+    # Note that the following options are ignored if "present: False"
+    present: False
+
+    # A pattern by which to recognise the spike-in contigs
+    # e.g. "ERCC" or "SIRV"
+    pattern: ERCC
+
+    # Location of GTF file that describes the spike-ins
+    geneset: /gfs/mirror/ercc92/ERCC92.gtf
+
+    # Location of a transcript-to-gene mapping file for spike-ins
+    # (headerless, tab-delimited, two columns: "transcript_id", "gene_id")
+    tx2gene: /gfs/mirror/ercc92/ERCC92.tx2gene.txt
+
+    # Whether to estimate copy numbers (True|False)
+    estimate_copy_numbers: False
+
+    # Location of a file containing information about the spike ins
+    # (tab-delimited, containing the columns: "gene_id" and "copies_per_cell")
+    copy_numbers: /gfs/mirror/ercc92/old/ercc.txt
+
+
+# Gene annotations options
+# ---------------
+annotations:
+    # The name of the genome
+    # !! this pattern must occur in the name of the
+    # Salmon and Hisat2 indices !!
+    genome: GRCm38
+
+    # location of the plain genome sequence
+    genome_dir: /gfs/mirror/ensembl/genomes/plain
+
+    # Either "ensembl" or "ucsc"
+    # !! used to sanity check contig names in
+    # the plain genone, geneset, and Hisat2 index !!
+    # If "ensembl" contig names in the ucsc refFlat are updated.
+    genome_source: ensembl
+
+    # The geneset to *quantify*, either:
+    # (1) "ensembl" to use the ensembl_geneset below (recommended)
+    # or (2) a path to a GTF file (e.g. from a stringTie/gffcompare assembly).
+    geneset: ensembl
+
+    # ENSEMBL gene annotations options
+    # ---------------
+
+    # Current "version" is only used as a sanity check
+    # !! the given pattern must occur in the name of the
+    # Salmon index and Hisat2 indices !!
+    ensembl_version: 91
+
+    # The biomaRt host for retrieving transcript information
+    # e.g. for current annotations: www.ensembl.org
+    # e.g. for archive annotations see list available at http://www.ensembl.org/info/website/archives/index.html
+    # Note that archive versions must be declared as the host name without "http://"
+    # e.g. "dec2017.archive.ensembl.org"
+    ensembl_host: www.ensembl.org
+
+    # The ENSEMBL BioMart dataset to use
+    # e.g. hsapiens_gene_ensembl
+    # e.g. mmusculus_gene_ensembl
+    ensembl_dataset: mmusculus_gene_ensembl
+
+    # Location of a GTF file containing the full ENSEMBL geneset.
+    # Used for quantification if "annotations_geneset: ensembl" is set above
+    # Used to produce a reference for Picard's CollectRnaSeqMetric
+    ensembl_geneset: /gfs/mirror/ensembl/GRCm38.91.dir/Mus_musculus.GRCm38.91.gtf.gz
+
+
+# HISAT2 mapping options
+# ---------------
+hisat:
+    executable: hisat2
+
+    # In order to map against known splice sites
+    # an index built with the transcriptome should be used
+    # or the option --known-splicesite-infile specified
+    # Note that the authors advise use of a transcriptome
+    # index to be superior, but building of transcriptome
+    # indexes is no longer possible due to memory
+    # constraints.
+    index: /gfs/mirror/ensembl/genomes/hisat2/GRCm38.91.genome.dir/GRCm38
+
+    # Number of parallel processes.
+    threads: 4
+
+    # Set the total memory allocated across all threads *in megabytes*.
+    total_mb_memory: 10000
+
+    # note that strand information is set automatically according
+    # to the general "strand" parameter
+    options: --known-splicesite-infile=/gfs/mirror/ensembl/genomes/hisat2/GRCm38.91.genome.dir/GRCm38.ensembl91.splices --dta --score-min L,0.0,-0.2
+
+# Salmon quasi-mapping options
+# ---------------
+salmon:
+    # Number of parallel processes.
+    threads: 4
+
+    # Only mapping against quasi indexes is supported.
+    # The index should be built from the geneset specified
+    # in the annotation section.
+    #
+    # It is recommended that the index is built from FASTA sequences
+    # extracted used "gffread -w", using the full Ensembl geneset
+    # and the (soft-masked) Ensembl version of the relevant genome.
+    #
+    # human: /gfs/mirror/ensembl/genomes/salmon/GRCh38.91.quasi.31/
+    # mouse: /gfs/mirror/ensembl/genomes/salmon/GRCm38.91.quasi.31/
+    index: /gfs/mirror/ensembl/genomes/salmon/GRCm38.91.quasi.31/
+
+    # The source of mappings between transcript_id and gene_id
+    # (1) "ensembl" to use the annotations_ensembl_dataset above (recommended)
+    # or (2) a path to a headerless TAB-delimited file mapping transcript_id and gene_id, respectively.
+    tx2gene: ensembl
+
+    # Use of --gcBias is generally recommended, but will
+    # results in slightly longer run times.
+    params: --gcBias
+
+
+# featureCounts mapped read couting options
+# ---------------
+featurecounts:
+    # Number of parallel processes.
+    threads: 4
+
+    # featureCounts is run with default options which can be
+    # optionally amended here (defaults are generally recommended).
+    # Note that strand and paired-end information is set automatically,
+    # based on the "paired" and "strandedness" options defined above.
+    # Note also that the -B flag is deliberately not set by default.
+    options:
+
+
+# cufflinks options
+# -----------------
+# Cufflinks is no longer run by default. To run use:
+# "make loadCuffNormClassic" or "make loadCuffNormUQ"
+#
+cufflinks:
+    # Number of parallel processes.
+    cuffquant_threads: 4
+    cuffnorm_threads: 16
+
+    # Set the total memory allocated across all threads *in megabytes*.
+    cuffnorm_total_mb_memory: 124000
+
+    # Name field title designating the sample replicates
+    # (see "name_field_titles" option defined above).
+    # Set to `0` or `False` in the absence of replicates.
+    replicate_field: replicate
+
+    # Location of file listing genes to use for normalisation
+    # (e.g., housekeepers)
+    standards: 0
+
+    # Note that the libary type is set automatically according
+    # to the general "strand" parameter
+
+
+# Picard options
+# --------------
+picard:
+    # Note that strand specificity is set automatically according to
+    # the general "strand" option defined above.
+
+    validation_stringency: SILENT
+
+    # Number of parallel processes.
+    threads: 3
+
+    # Set the total memory allocated across all threads *in megabytes*.
+    total_mb_memory: 8000
+
+    # Additional options to individual picard modules.
+    alignmentsummarymetrics_options:
+    collectrnaseqmetrics_options:
+    estimatelibrarycomplexity_options:
+    insertsizemetric_options:
+
+
+# Quality control threshold options
+# ---------------
+qcthresholds:
+
+
+# SQL database options
+# ---------------
+sql:
+
+    # RAM required for high memory operations (e.g. 5000M)
+    himem: 10000M

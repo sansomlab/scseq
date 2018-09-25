@@ -975,6 +975,11 @@ def salmon(infiles, outfile):
     else:
         fastq_input = "-r " + " ".join(reads_one)
 
+    if not PARAMS['salmon_params'] is None:
+        salmon_options = PARAMS['salmon_params']
+    else:
+        salmon_options = ''
+
     salmon_libtype = SALMON_LIBTYPE
     salmon_params = PARAMS["salmon_params"]
     job_threads = PARAMS["salmon_threads"]
@@ -982,7 +987,7 @@ def salmon(infiles, outfile):
     statement = '''salmon quant -i %(salmon_index)s
                                 -p %(job_threads)s
                                 -g %(tx2gene)s
-                                %(salmon_params)s
+                                %(salmon_options)s
                                 -l %(salmon_libtype)s
                                 %(fastq_input)s
                                 -o %(outname)s

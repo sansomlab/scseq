@@ -529,6 +529,13 @@ def generateSalmonIndex(infile, outfile):
                                 PARAMS["annotations_genome_fasta"])
     index_folder = SALMON_INDEX
     job_memory = PARAMS["salmon_index_memory"]
+
+    if SPIKES:
+        spikein = "add_spikes"
+    else:
+        spikein = "no_spikes"
+
+#    if SPIKES:
     statement = '''fasta_out=`mktemp -p %(cluster_tmpdir)s`;
             gtf=`mktemp -p %(cluster_tmpdir)s`;
             zcat %(infile)s > $gtf ;
@@ -536,6 +543,10 @@ def generateSalmonIndex(infile, outfile):
             -w $fasta_out
             -g %(genome_fasta)s
             $gtf ;
+            if [ %(spikein)s == "add_spikes" ] ;
+            then
+            cat %(spikein_fasta)s >> $fasta_out ;
+            fi ;
             salmon index
             -t $fasta_out
             -i %(index_folder)s

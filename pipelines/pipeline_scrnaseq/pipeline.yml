@@ -104,6 +104,10 @@ spikein:
     # (tab-delimited, containing the columns: "gene_id" and "copies_per_cell")
     copy_numbers: /gfs/mirror/ercc92/old/ercc.txt
 
+    # Location of the uncompressed fasta sequences for the spike ins;
+    # these will be added to the salmon index
+    fasta: /gfs/mirror/ercc92/ERCC92.fa
+
 
 # Gene annotations options
 # ---------------

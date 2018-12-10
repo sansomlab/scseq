@@ -943,16 +943,6 @@ def concatenateFeatureCounts(infiles, outfile):
 
     infiles = " ".join(infiles)
 
-    cat="track,gene_id,counts"
-
-    cat_options = ["--regex-filename='%s'" % ".*/(.*).counts.gz",
-                   "--no-titles",
-                   "--header-names=track,gene_id,counts"]
-
-    cat_options = " ".join(cat_options)
-
-    missing_value = "na"
-
     statement = '''python -m cgatcore.tables
                      --cat=track
                      --missing-value=na

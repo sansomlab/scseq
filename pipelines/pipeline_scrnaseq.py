@@ -935,19 +935,61 @@ def featureCounts(infiles, outfile):
 
 
 @merge(featureCounts,
-       "featureCounts.dir/featurecounts.load")
-def loadFeatureCounts(infiles, outfile):
+       "featureCounts.dir/featurecounts.txt")
+def concatenateFeatureCounts(infiles, outfile):
+    '''
+    Combine count data in the project database.
+    '''
+
+    infiles = " ".join(infiles)
+
+    cat="track,gene_id,counts"
+
+    cat_options = ["--regex-filename='%s'" % ".*/(.*).counts.gz",
+                   "--no-titles",
+                   "--header-names=track,gene_id,counts"]
+
+    cat_options = " ".join(cat_options)
+
+    missing_value = "na"
+
+    statement = '''python -m cgatcore.tables
+                     --cat=track
+                     --missing-value=na
+                     --regex-filename='.*/(.*).counts.gz'
+                     --no-titles
+                     %(infiles)s
+                     > %(outfile)s
+                '''
+
+    P.run(statement, job_memory=PARAMS["sql_himem"])
+
+
+@transform(concatenateFeatureCounts,
+         regex(r"featureCounts.dir/(.*).txt"),
+         r"featureCounts.dir/\1.load")
+def loadFeatureCounts(infile, outfile):
     '''
     Combine and load count data in the project database.
     '''
 
-    P.concatenate_and_load(infiles, outfile,
-                           regex_filename=".*/(.*).counts.gz",
-                           has_titles=False,
-                           cat="track",
-                           header="track,gene_id,counts",
-                           options='-i "gene_id"',
-                           job_memory=PARAMS["sql_himem"])
+    tablename = infile.replace(".load", "")
+
+    database_url = PARAMS["database"]["url"]
+
+    statement = '''cat %(infile)s
+                   | python -m cgatcore.csv2db
+                       --retry
+                       --database-url=%(database_url)s
+                       --add-index=track
+                       --header-names=track,gene_id,counts -i "gene_id"
+                       --table=featurecounts
+                       > %(outfile)s
+                '''
+
+    to_cluster = False
+
+    P.run(statement)
 
 
 @files(loadFeatureCounts,

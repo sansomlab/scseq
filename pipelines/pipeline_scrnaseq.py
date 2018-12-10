@@ -956,8 +956,8 @@ def concatenateFeatureCounts(infiles, outfile):
 
 
 @transform(concatenateFeatureCounts,
-         regex(r"featureCounts.dir/(.*).txt"),
-         r"featureCounts.dir/\1.load")
+           regex(r"featureCounts.dir/(.*).txt"),
+           r"featureCounts.dir/\1.load")
 def loadFeatureCounts(infile, outfile):
     '''
     Combine and load count data in the project database.

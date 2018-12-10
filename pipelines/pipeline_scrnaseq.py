@@ -213,7 +213,7 @@ else:
 
 
 # Set the database locations
-DATABASE = PARAMS["database"]["file"]
+DATABASE = PARAMS["database_file"]
 ANN_DATABASE = PARAMS["annotations_database"]
 
 # set the location of the scseq code directory

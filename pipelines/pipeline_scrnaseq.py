@@ -935,7 +935,7 @@ def featureCounts(infiles, outfile):
 
 
 @merge(featureCounts,
-       "featureCounts.dir/featurecounts.txt")
+       "featureCounts.dir/featurecounts.txt.gz")
 def concatenateFeatureCounts(infiles, outfile):
     '''
     Combine count data in the project database.
@@ -949,6 +949,7 @@ def concatenateFeatureCounts(infiles, outfile):
                      --regex-filename='.*/(.*).counts.gz'
                      --no-titles
                      %(infiles)s
+                     | gzip -c
                      > %(outfile)s
                 '''
 
@@ -956,7 +957,7 @@ def concatenateFeatureCounts(infiles, outfile):
 
 
 @transform(concatenateFeatureCounts,
-           regex(r"featureCounts.dir/(.*).txt"),
+           regex(r"featureCounts.dir/(.*).txt.gz"),
            r"featureCounts.dir/\1.load")
 def loadFeatureCounts(infile, outfile):
     '''
@@ -967,7 +968,7 @@ def loadFeatureCounts(infile, outfile):
 
     database_url = PARAMS["database"]["url"]
 
-    statement = '''cat %(infile)s
+    statement = '''zcat %(infile)s
                    | python -m cgatcore.csv2db
                        --retry
                        --database-url=%(database_url)s

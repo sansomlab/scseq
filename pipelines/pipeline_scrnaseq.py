@@ -934,6 +934,7 @@ def featureCounts(infiles, outfile):
     P.run(statement)
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @merge(featureCounts,
        "featureCounts.dir/featurecounts.txt.gz")
 def concatenateFeatureCounts(infiles, outfile):
@@ -983,6 +984,7 @@ def loadFeatureCounts(infile, outfile):
     P.run(statement)
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @files(loadFeatureCounts,
        "featureCounts.dir/featurecounts_counts.txt")
 def featurecountsGeneCounts(infile, outfile):
@@ -1003,6 +1005,7 @@ def featurecountsGeneCounts(infile, outfile):
     df.to_csv(outfile, sep="\t", index=True, index_label="gene_id")
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @transform(featurecountsGeneCounts,
            suffix(".txt"),
            ".load")
@@ -1067,6 +1070,7 @@ def salmon(infiles, outfile):
     P.run(statement)
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @active_if(fastqMode)
 @merge(salmon, "salmon.dir/salmon.transcripts.load")
 def loadSalmonTranscriptQuant(infiles, outfile):
@@ -1083,6 +1087,7 @@ def loadSalmonTranscriptQuant(infiles, outfile):
                            job_memory=PARAMS["sql_himem"])
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @active_if(fastqMode)
 @merge(salmon, "salmon.dir/salmon.genes.load")
 def loadSalmonGeneQuant(infiles, outfile):
@@ -1336,6 +1341,7 @@ else:
     run_copy_number_estimation = False
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @active_if(run_copy_number_estimation)
 @follows(mkdir("copy.number.dir"), loadSalmonTPMs)
 @files("salmon.dir/salmon.genes.tpms.txt",
@@ -1357,6 +1363,7 @@ def estimateCopyNumber(infile, outfile):
     P.run(statement)
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @active_if(run_copy_number_estimation)
 @transform(estimateCopyNumber,
            suffix(".txt"),
@@ -1441,6 +1448,7 @@ def collectRnaSeqMetrics(infiles, outfile):
     P.run(statement)
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @merge(collectRnaSeqMetrics,
        "qc.dir/qc_rnaseq_metrics.load")
 def loadCollectRnaSeqMetrics(infiles, outfile):
@@ -1481,6 +1489,7 @@ def threePrimeBias(infile, outfile):
         out_file.write("%.2f\n" % bias)
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @merge(threePrimeBias,
        "qc.dir/qc_three_prime_bias.load")
 def loadThreePrimeBias(infiles, outfile):
@@ -1531,6 +1540,7 @@ def estimateLibraryComplexity(infile, outfile):
     P.run(statement)
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @active_if(PAIRED)
 @merge(estimateLibraryComplexity,
        "qc.dir/qc_library_complexity.load")
@@ -1586,6 +1596,7 @@ def alignmentSummaryMetrics(infile, outfile):
     P.run(statement)
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @merge(alignmentSummaryMetrics,
        "qc.dir/qc_alignment_summary_metrics.load")
 def loadAlignmentSummaryMetrics(infiles, outfile):
@@ -1657,6 +1668,7 @@ def insertSizeMetricsAndHistograms(infile, outfiles):
     P.run(statement)
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @merge(insertSizeMetricsAndHistograms,
        "qc.dir/qc_insert_size_metrics.load")
 def loadInsertSizeMetrics(infiles, outfile):
@@ -1680,6 +1692,7 @@ def loadInsertSizeMetrics(infiles, outfile):
         P.run(statement)
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @merge(insertSizeMetricsAndHistograms,
        "qc.dir/qc_insert_size_histogram.load")
 def loadInsertSizeHistograms(infiles, outfile):
@@ -1735,6 +1748,7 @@ def spikeVsGenome(infile, outfile):
     P.run(statement)
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @merge(spikeVsGenome,
        "qc.dir/qc_spike_vs_genome.load")
 def loadSpikeVsGenome(infiles, outfile):
@@ -1751,6 +1765,7 @@ def loadSpikeVsGenome(infiles, outfile):
 
 # ------------------------- No. genes detected ------------------------------ #
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @active_if(fastqMode)
 @follows(mkdir("qc.dir/"), loadSalmonTPMs, loadEnsemblAnnotations)
 @files("salmon.dir/salmon.genes.tpms.load",
@@ -1786,6 +1801,7 @@ def numberGenesDetectedSalmon(infile, outfile):
     count_df.to_csv(outfile, index=False, sep="\t")
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @active_if(fastqMode)
 @follows(annotations)
 @files(numberGenesDetectedSalmon,
@@ -1799,6 +1815,7 @@ def loadNumberGenesDetectedSalmon(infile, outfile):
            options='-i "sample_id"')
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @follows(annotations)
 @files(loadFeatureCounts,
        "qc.dir/number.genes.detected.featurecounts")
@@ -1832,6 +1849,7 @@ def numberGenesDetectedFeatureCounts(infile, outfile):
     count_df.to_csv(outfile, index=False, sep="\t")
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @files(numberGenesDetectedFeatureCounts,
        "qc.dir/qc_no_genes_featurecounts.load")
 def loadNumberGenesDetectedFeatureCounts(infile, outfile):
@@ -1869,6 +1887,7 @@ def fractionReadsSpliced(infile, outfile):
     P.run(statement)
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @merge(fractionReadsSpliced,
        "qc.dir/qc_fraction_spliced.load")
 def loadFractionReadsSpliced(infiles, outfile):
@@ -1906,6 +1925,7 @@ def loadSampleInformation(infile, outfile):
     P.load(infile, outfile)
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @merge([loadSampleInformation,
         loadCollectRnaSeqMetrics,
         loadThreePrimeBias,
@@ -2001,6 +2021,7 @@ def qcSummary(infiles, outfile):
     df.to_csv(outfile, sep="\t", index=False)
 
 
+@active_if(PARAMS["sql_load_concatenated_table"])
 @transform(qcSummary,
            suffix(".txt"),
            ".load")

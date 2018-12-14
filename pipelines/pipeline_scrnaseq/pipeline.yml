@@ -77,6 +77,7 @@ strandedness: none
 # location of the local sqlite3 database
 database:
     file: csvdb
+    url: sqlite:///./csvdb
 
 
 # Spike-in options
@@ -287,3 +288,5 @@ sql:
 
     # RAM required for high memory operations (e.g. 5000M)
     himem: 10000M
+
+    load_concatenated_table: True

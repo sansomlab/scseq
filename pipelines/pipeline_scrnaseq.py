@@ -370,7 +370,7 @@ def getGenomeContigs(infile, outfile):
 
     statement = '''grep \\> %(infile)s
                    | sed 's/>//g'
-                   | sort -u -T %(cluster_tmpdir)s
+                   | sort -u -T %(tmpdir)s
                    > %(outfile)s
                 '''
     P.run(statement)
@@ -387,7 +387,7 @@ def getHisat2Contigs(infile, outfile):
     statement = '''hisat2-inspect -s %(hisat_index)s
                    | grep Sequence
                    | cut -f2
-                   | sort -u -T %(cluster_tmpdir)s
+                   | sort -u -T %(tmpdir)s
                    > %(outfile)s
                 '''
 
@@ -405,7 +405,7 @@ def getQuantitationGenesetContigs(infile, outfile):
     statement = '''zcat %(infile)s
                    | grep -v ^#
                    | cut -f1
-                   | sort -u -T %(cluster_tmpdir)s
+                   | sort -u -T %(tmpdir)s
                    > %(outfile)s
                 '''
 
@@ -423,7 +423,7 @@ def getEnsemblGenesetContigs(infile, outfile):
     statement = '''zcat %(infile)s
                    | grep -v ^#
                    | cut -f1
-                   | sort -u -T %(cluster_tmpdir)s
+                   | sort -u -T %(tmpdir)s
                    > %(outfile)s
                 '''
 
@@ -529,8 +529,8 @@ def generateSalmonIndex(infile, outfile):
                                 PARAMS["annotations_genome_fasta"])
     index_folder = SALMON_INDEX
     job_memory = PARAMS["salmon_index_memory"]
-    statement = '''fasta_out=`mktemp -p %(cluster_tmpdir)s`;
-            gtf=`mktemp -p %(cluster_tmpdir)s`;
+    statement = '''fasta_out=`mktemp -p %(tmpdir)s`;
+            gtf=`mktemp -p %(tmpdir)s`;
             zcat %(infile)s > $gtf ;
              gffread
             -w $fasta_out
@@ -626,7 +626,7 @@ def novelHisatSpliceSites(infiles, outfile):
     junction_files = " ".join(infiles)
 
     statement = '''zcat %(junction_files)s
-                   | sort -k1,1 -T %(cluster_tmpdir)s
+                   | sort -k1,1 -T %(tmpdir)s
                    | uniq
                    > %(outfile)s
                 '''
@@ -666,7 +666,7 @@ def hisatAlignments(infiles, outfile):
 
     hisat_strand_param = HISAT_STRAND_PARAM
 
-    statement = '''sort_sam=`mktemp -p %(cluster_tmpdir)s`;
+    statement = '''sort_sam=`mktemp -p %(tmpdir)s`;
                    %(hisat_executable)s
                       -x %(index)s
                       %(fastq_input)s
@@ -912,9 +912,9 @@ def featureCounts(infiles, outfile):
 
     job_threads = PARAMS["featurecounts_threads"]
 
-    statement = '''cd %(cluster_tmpdir)s;
-                   gtf=`mktemp -p %(cluster_tmpdir)s`;
-                   counts=`mktemp -p %(cluster_tmpdir)s`;
+    statement = '''cd %(tmpdir)s;
+                   gtf=`mktemp -p %(tmpdir)s`;
+                   counts=`mktemp -p %(tmpdir)s`;
                    zcat %(geneset)s > $gtf;
                    featureCounts
                         -a $gtf
@@ -1158,7 +1158,7 @@ def cuffQuant(infiles, outfile):
 
     cufflinks_strand = CUFFLINKS_STRAND
 
-    statement = '''gtf=`mktemp -p %(cluster_tmpdir)s`;
+    statement = '''gtf=`mktemp -p %(tmpdir)s`;
                    zcat %(geneset)s > $gtf;
                    cuffquant
                            --output-dir %(output_dir)s
@@ -1387,7 +1387,7 @@ def collectRnaSeqMetrics(infiles, outfile):
 
     picard_strand = PICARD_STRAND
 
-    statement = '''picard_out=`mktemp -p %(cluster_tmpdir)s`;
+    statement = '''picard_out=`mktemp -p %(tmpdir)s`;
                    CollectRnaSeqMetrics
                    I=%(bam_file)s
                    REF_FLAT=%(geneset_flat)s
@@ -1484,7 +1484,7 @@ def estimateLibraryComplexity(infile, outfile):
     job_threads = PICARD_THREADS
     job_memory = PICARD_MEMORY
 
-    statement = '''picard_out=`mktemp -p %(cluster_tmpdir)s`;
+    statement = '''picard_out=`mktemp -p %(tmpdir)s`;
                    EstimateLibraryComplexity
                    I=%(infile)s
                    O=$picard_out
@@ -1538,7 +1538,7 @@ def alignmentSummaryMetrics(infile, outfile):
     reference_sequence = os.path.join(PARAMS["annotations_genome_dir"],
                                       PARAMS["annotations_genome"] + ".fasta")
 
-    statement = '''picard_out=`mktemp -p %(cluster_tmpdir)s`;
+    statement = '''picard_out=`mktemp -p %(tmpdir)s`;
                    CollectAlignmentSummaryMetrics
                    I=%(infile)s
                    O=$picard_out
@@ -1598,7 +1598,7 @@ def insertSizeMetricsAndHistograms(infile, outfiles):
                                           PARAMS["annotations_genome"] +
                                           ".fasta")
 
-        statement = '''picard_out=`mktemp -p %(cluster_tmpdir)s`;
+        statement = '''picard_out=`mktemp -p %(tmpdir)s`;
                        CollectInsertSizeMetrics
                        I=%(infile)s
                        O=$picard_out

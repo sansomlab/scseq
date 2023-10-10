@@ -1388,7 +1388,7 @@ def collectRnaSeqMetrics(infiles, outfile):
     picard_strand = PICARD_STRAND
 
     statement = '''picard_out=`mktemp -p %(tmpdir)s`;
-                   CollectRnaSeqMetrics
+                   java -jar $EBROOTPICARD/picard CollectRnaSeqMetrics
                    I=%(bam_file)s
                    REF_FLAT=%(geneset_flat)s
                    O=$picard_out
@@ -1485,7 +1485,7 @@ def estimateLibraryComplexity(infile, outfile):
     job_memory = PICARD_MEMORY
 
     statement = '''picard_out=`mktemp -p %(tmpdir)s`;
-                   EstimateLibraryComplexity
+                   java -jar $EBROOTPICARD/picard EstimateLibraryComplexity
                    I=%(infile)s
                    O=$picard_out
                    VALIDATION_STRINGENCY=%(validation_stringency)s
@@ -1539,7 +1539,7 @@ def alignmentSummaryMetrics(infile, outfile):
                                       PARAMS["annotations_genome"] + ".fasta")
 
     statement = '''picard_out=`mktemp -p %(tmpdir)s`;
-                   CollectAlignmentSummaryMetrics
+                   java -jar $EBROOTPICARD/picard CollectAlignmentSummaryMetrics
                    I=%(infile)s
                    O=$picard_out
                    REFERENCE_SEQUENCE=%(reference_sequence)s
@@ -1599,7 +1599,7 @@ def insertSizeMetricsAndHistograms(infile, outfiles):
                                           ".fasta")
 
         statement = '''picard_out=`mktemp -p %(tmpdir)s`;
-                       CollectInsertSizeMetrics
+                       java -jar $EBROOTPICARD/picard CollectInsertSizeMetrics
                        I=%(infile)s
                        O=$picard_out
                        HISTOGRAM_FILE=%(picard_histogram_pdf)s
